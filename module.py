@@ -95,7 +95,7 @@ class Discriminator(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2)
         )
-        self.out = nn.Linear(25600, 1)
+        self.out = nn.Linear(base_filter * 1600, 1)
     
     def forward(self, x):
         x = self.conv1(x)

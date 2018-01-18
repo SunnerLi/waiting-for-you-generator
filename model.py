@@ -1,28 +1,104 @@
+from torch.autograd import Variable
 from module import Generator, Discriminator
 from torch.optim import Adam
 import torch.nn as nn
 import torch
 
 class CustomCycleGAN(nn.Module):
-    def __init__(self, input_channel = 3, base_filter = 32, adopt_custom = False):
+    # Define cycle index
+    INDEX_wait_to_real = 0
+    INDEX_real_to_wait = 1
+
+    def __init__(self, input_channel = 3, base_filter = 16, adopt_custom = False):
+        super(CustomCycleGAN, self).__init__()
         self.adopt_custom = adopt_custom
-        self.photo_to_real_generator = Generator(input_channel, base_filter)
-        self.real_to_photo_generator = Generator(input_channel, base_filter)
+        print('-' * 20 + ' Build generator ' + '-' * 20)
+        self.wait_to_real_generator = Generator(input_channel, base_filter)
+        self.real_to_wait_generator = Generator(input_channel, base_filter)
+        print(self.wait_to_real_generator)
+        print(self.real_to_wait_generator)
+        print('-' * 20 + ' Build discriminator ' + '-' * 20)
         self.real_discriminator = Discriminator(input_channel, base_filter)
-        self.photo_discriminator = Discriminator(input_channel, base_filter)
+        self.wait_discriminator = Discriminator(input_channel, base_filter)
+        print(self.real_discriminator)
+        print(self.wait_discriminator)
 
-        self.photo_to_real_generator_optimizer = Adam(self.photo_to_real_generator.parameters())
-        self.real_to_photo_generator_optimizer = Adam(self.real_to_photo_generator.parameters())
-        self.photo_to_real_discriminator_optimizer = Adam(self.photo_to_real_discriminator.parameters())
-        self.real_to_photo_discriminator_optimizer = Adam(self.real_to_photo_discriminator.parameters())
+        self.wait_to_real_generator_optimizer = Adam(self.wait_to_real_generator.parameters())
+        self.real_to_wait_generator_optimizer = Adam(self.real_to_wait_generator.parameters())
+        self.real_discriminator_optimizer = Adam(self.real_discriminator.parameters())
+        self.wait_discriminator_optimizer = Adam(self.wait_discriminator.parameters())
 
-    def forward(self, photo_variable, real_variable):
-        # Compute 1st cycle loss
-        real_image_with_text = self.photo_to_real_generator(photo_variable)
-        photo_image_with_text = self.real_to_photo_generator(real_image_with_text)
-        fake_logits = self.real_discriminator(real_image_with_text)
-        true_logtis = self.real_discriminator(real_variable)
-        self.photo_to_real_discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
-        self.photo_to_real_generator_loss = torch.sum((fake_logits - 1) ** 2) / 2.
-        if self.adopt_custom == False:
-            self.photo_to_real_cycle_loss = torch.mean(torch.abs(real_image_with_text - photo_image_with_text))
+    def forward(self, wait_variable, real_variable, cycle_idx):
+        # 1st cycle
+        if cycle_idx == self.INDEX_wait_to_real:  
+            real_img = self.wait_to_real_generator(wait_variable)
+            wait_img = self.real_to_wait_generator(real_img)
+            fake_logits = self.real_discriminator(real_img)
+            true_logtis = self.real_discriminator(real_variable)
+            return real_img, wait_img, true_logtis, fake_logits
+        # 2nd cycle
+        elif cycle_idx == self.INDEX_real_to_wait:               
+            wait_img = self.real_to_wait_generator(real_variable)
+            real_img = self.wait_to_real_generator(wait_img)
+            fake_logits = self.wait_discriminator(wait_img)
+            true_logtis = self.wait_discriminator(wait_variable)
+            return wait_img, real_img, true_logtis, fake_logits
+        else:
+            print("Invalid cycle index...")
+            exit()
+
+    def train(self, loader, epoch=1):
+        for i in range(epoch):
+            for j, (batch_real_img, batch_wait_img) in enumerate(loader):
+                batch_real_img = Variable(batch_real_img).cuda()
+                batch_wait_img = Variable(batch_wait_img).cuda()
+
+                # ------------------------------------------------------------------------
+                # 1st cycle 
+                # ------------------------------------------------------------------------
+                # loss compute
+                latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_wait_to_real)
+                self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
+                self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
+                    torch.mean(torch.abs(batch_wait_img - restore_img))
+
+                # 1st cycle parameter update
+                self.wait_to_real_generator_optimizer.zero_grad()
+                self.real_to_wait_generator_optimizer.zero_grad()
+                self.real_discriminator_optimizer.zero_grad()
+
+                self.discriminator_loss.backward(retain_graph=True)
+                self.generator_loss.backward()
+
+                self.wait_to_real_generator_optimizer.step()
+                self.real_to_wait_generator_optimizer.step()
+                self.real_discriminator_optimizer.step()
+
+                # Verbose
+                print('epoch: ', i, '\titer: ', j, '\t< 1st cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
+                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0])
+
+                # ------------------------------------------------------------------------
+                # 2nd cycle 
+                # ------------------------------------------------------------------------
+                # loss compute
+                latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_real_to_wait)
+                self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
+                self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
+                    torch.mean(torch.abs(batch_real_img - restore_img))
+
+                # 2nd cycle parameter update
+                self.wait_to_real_generator_optimizer.zero_grad()
+                self.real_to_wait_generator_optimizer.zero_grad()
+                self.wait_discriminator_optimizer.zero_grad()
+
+                self.discriminator_loss.backward(retain_graph=True)
+                self.generator_loss.backward()
+
+                self.real_to_wait_generator_optimizer.step()
+                self.wait_to_real_generator_optimizer.step()
+                self.wait_discriminator_optimizer.step()
+
+                # Verbose
+                print('epoch: ', i, '\titer: ', j, '\t< 2nd cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
+                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0])

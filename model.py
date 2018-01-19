@@ -13,7 +13,11 @@ class CustomCycleGAN(GAN):
     INDEX_wait_to_real = 0
     INDEX_real_to_wait = 1
 
-    def __init__(self, input_channel = 3, base_filter = 2, adopt_custom = False):
+    # Hyper-parameter
+    lambda_real_wait_real = 10.
+    lambda_wait_real_wait = 10.
+
+    def __init__(self, input_channel = 3, base_filter = 16, adopt_custom = False):
         super(CustomCycleGAN, self).__init__()
         self.adopt_custom = adopt_custom
         print('-' * 20 + ' Build generator ' + '-' * 20)
@@ -51,23 +55,22 @@ class CustomCycleGAN(GAN):
             print("Invalid cycle index...")
             exit()
 
-    def train(self, loader, epoch=1, verbose_period=5):
+    def train(self, loader, epoch=1, verbose_period=20):
         # Load pretrained model
         self.load()
         
         for i in range(epoch):
             for j, (batch_real_img, batch_wait_img) in enumerate(loader):
-                # saveTransformResult('./output', str(i) + '_' + str(j) + '.png', Variable(batch_real_img), Variable(torch.zeros_like(batch_real_img)))                
                 batch_real_img, batch_wait_img = self.prepareBatchData(batch_real_img, batch_wait_img)
 
                 # ------------------------------------------------------------------------
                 # 1st cycle 
                 # ------------------------------------------------------------------------
                 # loss compute
-                latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_wait_to_real)
+                wait_latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_wait_to_real)
                 self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
                 self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
-                    torch.mean(torch.abs(batch_wait_img - restore_img))
+                    self.lambda_wait_real_wait * torch.sum(torch.abs(batch_wait_img - restore_img))
 
                 # 1st cycle parameter update
                 self.wait_to_real_generator_optimizer.zero_grad()
@@ -87,10 +90,10 @@ class CustomCycleGAN(GAN):
                 # 2nd cycle 
                 # ------------------------------------------------------------------------
                 # loss compute
-                latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_real_to_wait)
+                real_latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_real_to_wait)
                 self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
                 self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
-                    torch.mean(torch.abs(batch_real_img - restore_img))
+                    self.lambda_real_wait_real * torch.sum(torch.abs(batch_real_img - restore_img))
 
                 # 2nd cycle parameter update
                 self.wait_to_real_generator_optimizer.zero_grad()
@@ -114,7 +117,7 @@ class CustomCycleGAN(GAN):
                         '\t< 1st cycle >\tgen loss: ', generator_loss_1st, '\tdis loss: ', discriminator_loss_1st,
                         '\t< 2nd cycle >\tgen loss: ', generator_loss_2nd, '\tdis loss: ', discriminator_loss_2nd
                     )
-                    saveTransformResult('./output', str(i) + '_' + str(j) + '.png', batch_real_img, restore_img)
+                    saveTransformResult('./output', str(i) + '_' + str(j) + '.png', batch_real_img, batch_wait_img, real_latent_img, wait_latent_img)
                     self.save(i * loader.iter_num + j)
 
     def load(self):

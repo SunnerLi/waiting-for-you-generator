@@ -15,7 +15,7 @@ class WaitTensorDataset(Data.Dataset):
         self.wait_img_root_dir = wait_img_root_dir
         self.transform = transform
         self.real_img_list = glob.glob(os.path.join(self.real_img_root_dir, "*.jpg"))
-        self.wait_img_list = glob.glob(os.path.join(self.wait_img_root_dir, "*.jpg"))
+        self.wait_img_list = glob.glob(os.path.join(self.wait_img_root_dir, "*.png"))
         self.fill()
 
     def fill(self):

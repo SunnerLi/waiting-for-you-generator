@@ -74,5 +74,4 @@ class UnNormalize(object):
             # The normalize code -> t.sub_(m).div_(s)
         tensor = torch.stack(result_tensor, 0)
         tensor = tensor.transpose(0, 1)
-        print(tensor.size())
         return tensor

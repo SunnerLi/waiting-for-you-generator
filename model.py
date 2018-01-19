@@ -1,9 +1,11 @@
+import torchvision_extend.transforms as my_transforms
+from module import Generator, Discriminator
 from visualize import saveTransformResult
 from torch.autograd import Variable
-from module import Generator, Discriminator
 from torch.optim import Adam
 from gan import GAN
 import torch.nn as nn
+import numpy as np
 import torch
 
 class CustomCycleGAN(GAN):
@@ -11,7 +13,7 @@ class CustomCycleGAN(GAN):
     INDEX_wait_to_real = 0
     INDEX_real_to_wait = 1
 
-    def __init__(self, input_channel = 3, base_filter = 16, adopt_custom = False):
+    def __init__(self, input_channel = 3, base_filter = 2, adopt_custom = False):
         super(CustomCycleGAN, self).__init__()
         self.adopt_custom = adopt_custom
         print('-' * 20 + ' Build generator ' + '-' * 20)
@@ -50,11 +52,13 @@ class CustomCycleGAN(GAN):
             exit()
 
     def train(self, loader, epoch=1, verbose_period=5):
-        self.loadModel()
+        # Load pretrained model
+        self.load()
+        
         for i in range(epoch):
             for j, (batch_real_img, batch_wait_img) in enumerate(loader):
-                batch_real_img = Variable(batch_real_img).cuda()
-                batch_wait_img = Variable(batch_wait_img).cuda()
+                # saveTransformResult('./output', str(i) + '_' + str(j) + '.png', Variable(batch_real_img), Variable(torch.zeros_like(batch_real_img)))                
+                batch_real_img, batch_wait_img = self.prepareBatchData(batch_real_img, batch_wait_img)
 
                 # ------------------------------------------------------------------------
                 # 1st cycle 
@@ -72,8 +76,8 @@ class CustomCycleGAN(GAN):
 
                 self.discriminator_loss.backward(retain_graph=True)
                 self.generator_loss.backward()
-                discriminator_loss_1st = self.discriminator_loss
-                generator_loss_1st = self.generator_loss
+                discriminator_loss_1st = self.discriminator_loss.data.cpu().numpy()[0]
+                generator_loss_1st = self.generator_loss.data.cpu().numpy()[0]
 
                 self.wait_to_real_generator_optimizer.step()
                 self.real_to_wait_generator_optimizer.step()
@@ -95,8 +99,8 @@ class CustomCycleGAN(GAN):
 
                 self.discriminator_loss.backward(retain_graph=True)
                 self.generator_loss.backward()
-                discriminator_loss_2nd = self.discriminator_loss
-                generator_loss_2nd = self.generator_loss
+                discriminator_loss_2nd = self.discriminator_loss.data.cpu().numpy()[0]
+                generator_loss_2nd = self.generator_loss.data.cpu().numpy()[0]
 
                 self.real_to_wait_generator_optimizer.step()
                 self.wait_to_real_generator_optimizer.step()
@@ -107,9 +111,30 @@ class CustomCycleGAN(GAN):
                 # ------------------------------------------------------------------------
                 if j % verbose_period == 0:
                     print('epoch: ', i, '\titer: ', j, 
-                    '\t< 1st cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
-                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0],
-                    '\t< 2nd cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
-                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0])
+                        '\t< 1st cycle >\tgen loss: ', generator_loss_1st, '\tdis loss: ', discriminator_loss_1st,
+                        '\t< 2nd cycle >\tgen loss: ', generator_loss_2nd, '\tdis loss: ', discriminator_loss_2nd
+                    )
                     saveTransformResult('./output', str(i) + '_' + str(j) + '.png', batch_real_img, restore_img)
-                    self.saveModel(i * loader.iter_num + j)
+                    self.save(i * loader.iter_num + j)
+
+    def load(self):
+        self.real_to_wait_generator = self.loadModel(self.real_to_wait_generator, model_name = 'real_to_wait_generator')
+        self.wait_to_real_generator = self.loadModel(self.wait_to_real_generator, model_name = 'wait_to_real_generator')
+        self.real_discriminator = self.loadModel(self.real_discriminator, model_name = 'real_discriminator')
+        self.wait_discriminator = self.loadModel(self.wait_discriminator, model_name = 'wait_discriminator')
+
+    def save(self, idx, model_folder = './model'):
+        import glob
+        import os
+
+        # Remove all previous model
+        prev_model_name_list = glob.glob(os.path.join(model_folder, '*.pth.tar'))
+        for name in prev_model_name_list:
+            os.remove(name)
+        
+        # Save
+        self.saveModel(self.real_to_wait_generator, idx, model_name = 'real_to_wait_generator')
+        self.saveModel(self.wait_to_real_generator, idx, model_name = 'wait_to_real_generator')
+        self.saveModel(self.real_discriminator, idx, model_name = 'real_discriminator')
+        self.saveModel(self.wait_discriminator, idx, model_name = 'wait_discriminator')
+        

@@ -48,21 +48,21 @@ class WaitTensorDataset(Data.Dataset):
             'wait': cv2.imread(wait_img_name)
         }
         if self.transform:
-            sample = self.transform(sample)
-        return sample['real'], sample['wait']
+            sample_transformed = self.transform(sample)
+        return sample_transformed['real'], sample_transformed['wait']
 
 class WaitDataLoader(Data.DataLoader):
-    def __init__(self, dataset, batch_size=1, shuffle=False):
-        super(WaitDataLoader, self).__init__(dataset, batch_size=batch_size, shuffle=shuffle)
+    def __init__(self, dataset, batch_size=1, shuffle=False, num_workers = 1):
+        super(WaitDataLoader, self).__init__(dataset, batch_size=batch_size, shuffle=shuffle, num_workers = num_workers)
         self.dataset = dataset
         self.iter_num = self.getIterNumber()
 
     def getIterNumber(self):
         import glob
         import os
-        # _list = glob.glob(os.path.join(self.dataset.real_img_root_dir, '*.jpg'))
-        # return round(len(_list) / self.batch_size)
-        return round(len(self.dataset.data_tensor) / self.batch_size)
+        _list = glob.glob(os.path.join(self.dataset.real_img_root_dir, '*.jpg'))
+        return round(len(_list) / self.batch_size)
+        # return round(len(self.dataset.data_tensor) / self.batch_size)
 
 if __name__ == '__main__':
     dataset = WaitTensorDataset(

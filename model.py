@@ -1,10 +1,12 @@
+from visualize import saveTransformResult
 from torch.autograd import Variable
 from module import Generator, Discriminator
 from torch.optim import Adam
+from gan import GAN
 import torch.nn as nn
 import torch
 
-class CustomCycleGAN(nn.Module):
+class CustomCycleGAN(GAN):
     # Define cycle index
     INDEX_wait_to_real = 0
     INDEX_real_to_wait = 1
@@ -47,7 +49,8 @@ class CustomCycleGAN(nn.Module):
             print("Invalid cycle index...")
             exit()
 
-    def train(self, loader, epoch=1):
+    def train(self, loader, epoch=1, verbose_period=5):
+        self.loadModel()
         for i in range(epoch):
             for j, (batch_real_img, batch_wait_img) in enumerate(loader):
                 batch_real_img = Variable(batch_real_img).cuda()
@@ -69,14 +72,12 @@ class CustomCycleGAN(nn.Module):
 
                 self.discriminator_loss.backward(retain_graph=True)
                 self.generator_loss.backward()
+                discriminator_loss_1st = self.discriminator_loss
+                generator_loss_1st = self.generator_loss
 
                 self.wait_to_real_generator_optimizer.step()
                 self.real_to_wait_generator_optimizer.step()
                 self.real_discriminator_optimizer.step()
-
-                # Verbose
-                print('epoch: ', i, '\titer: ', j, '\t< 1st cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
-                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0])
 
                 # ------------------------------------------------------------------------
                 # 2nd cycle 
@@ -94,11 +95,21 @@ class CustomCycleGAN(nn.Module):
 
                 self.discriminator_loss.backward(retain_graph=True)
                 self.generator_loss.backward()
+                discriminator_loss_2nd = self.discriminator_loss
+                generator_loss_2nd = self.generator_loss
 
                 self.real_to_wait_generator_optimizer.step()
                 self.wait_to_real_generator_optimizer.step()
                 self.wait_discriminator_optimizer.step()
 
-                # Verbose
-                print('epoch: ', i, '\titer: ', j, '\t< 2nd cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
+                # ------------------------------------------------------------------------
+                # Record
+                # ------------------------------------------------------------------------
+                if j % verbose_period == 0:
+                    print('epoch: ', i, '\titer: ', j, 
+                    '\t< 1st cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
+                    '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0],
+                    '\t< 2nd cycle >\tgen loss: ', self.generator_loss.data.cpu().numpy()[0], 
                     '\tdis loss: ', self.discriminator_loss.data.cpu().numpy()[0])
+                    saveTransformResult('./output', str(i) + '_' + str(j) + '.png', batch_real_img, restore_img)
+                    self.saveModel(i * loader.iter_num + j)

@@ -14,43 +14,55 @@ class Generator(nn.Module):
         # Define Encoder part
         self.conv1 = nn.Sequential(
             nn.Conv2d(input_channel, base_filter, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter, base_filter, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter, base_filter, 4, padding = 1, stride=2),
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(base_filter * 1, base_filter * 2, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 2),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 2, base_filter * 2, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 2),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 2, base_filter * 2, 4, padding = 1, stride = 2),
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(base_filter * 2, base_filter * 4, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 4, base_filter * 4, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 4, base_filter * 4, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 4, base_filter * 4, 3, padding = 1),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
             nn.Conv2d(base_filter * 4, base_filter * 4, 4, padding = 1, stride = 2),
         )
         self.conv4 = nn.Sequential(
             nn.Conv2d(base_filter * 4, base_filter * 4, 4, padding = 1, stride = 2),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
         )
         self.deconv3 = nn.Sequential(
             nn.ConvTranspose2d(base_filter * 4, base_filter * 4, 4, 2, padding = 1),
+            nn.InstanceNorm2d(base_filter * 4),
             nn.LeakyReLU(),
         )
         self.deconv2 = nn.Sequential(
             nn.ConvTranspose2d(base_filter * 8, base_filter * 2, 4, 2, padding = 1),
+            nn.InstanceNorm2d(base_filter * 2),
             nn.LeakyReLU(),
         )
         self.deconv1 = nn.Sequential(
             nn.ConvTranspose2d(base_filter * 4, base_filter * 1, 4, 2, padding = 1),
+            nn.InstanceNorm2d(base_filter * 1),
             nn.LeakyReLU(),
         )
         self.recon = nn.ConvTranspose2d(base_filter * 2, self.input_channel, 4, 2, padding = 1)
@@ -110,5 +122,5 @@ if __name__ == '__main__':
     generator.cuda()
     img_var = Variable(torch.from_numpy(np.random.random([32, 3, 160, 320])).float())
     img_var = img_var.cuda() if torch.cuda.is_available() else img_var
-    for i in range(1):
+    for i in range(10000):
         generator(img_var)

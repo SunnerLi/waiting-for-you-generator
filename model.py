@@ -1,10 +1,13 @@
-import torchvision_extend.transforms as my_transforms
 from module import Generator, Discriminator
 from visualize import saveTransformResult
+from matplotlib import pyplot as plt
 from torch.autograd import Variable
+from mask import getMaskVariable
 from torch.optim import Adam
 from gan import GAN
+import torchvision_extend.transforms as my_transforms
 import torch.nn as nn
+import pandas as pd
 import numpy as np
 import torch
 
@@ -15,11 +18,17 @@ class CustomCycleGAN(GAN):
 
     # Hyper-parameter
     lambda_real_wait_real = 10.
-    lambda_wait_real_wait = 10.
+    lambda_wait_real_wait = 100.
+    lambda_identity = 0.5
 
-    def __init__(self, input_channel = 3, base_filter = 16, adopt_custom = False):
+    def __init__(self, input_channel = 3, base_filter = 16, adopt_custom = False, model_folder = './model/', output_folder = './output/'):
         super(CustomCycleGAN, self).__init__()
+        # Assign parameters
         self.adopt_custom = adopt_custom
+        self.model_folder = model_folder
+        self.output_folder = output_folder
+
+        # Compose network components
         print('-' * 20 + ' Build generator ' + '-' * 20)
         self.wait_to_real_generator = Generator(input_channel, base_filter)
         self.real_to_wait_generator = Generator(input_channel, base_filter)
@@ -55,9 +64,14 @@ class CustomCycleGAN(GAN):
             print("Invalid cycle index...")
             exit()
 
-    def train(self, loader, epoch=1, verbose_period=20):
+    def train(self, loader, epoch=1, verbose_period=2):
         # Load pretrained model
         self.load()
+        l1_loss_fn = torch.nn.L1Loss()
+        self.wait_to_real_generator_loss_list = []
+        self.real_to_wait_generator_loss_list = []
+        self.real_discriminator_loss_list = []
+        self.wait_discriminator_loss_list = []
         
         for i in range(epoch):
             for j, (batch_real_img, batch_wait_img) in enumerate(loader):
@@ -69,8 +83,20 @@ class CustomCycleGAN(GAN):
                 # loss compute
                 wait_latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_wait_to_real)
                 self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
-                self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
-                    self.lambda_wait_real_wait * torch.sum(torch.abs(batch_wait_img - restore_img))
+                # usual cycleGAN
+                if self.adopt_custom == False:      
+                    self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
+                        self.lambda_wait_real_wait * l1_loss_fn(restore_img, batch_wait_img) + \
+                        self.lambda_identity * self.lambda_wait_real_wait * l1_loss_fn(wait_latent_img, batch_wait_img)                 # Identity mapping loss
+                # mask cycleGAN
+                else:                               
+                    mask_var = getMaskVariable(batch_wait_img, use_cuda = True)
+                    filted_batch_wait_img = torch.mul(batch_wait_img, mask_var)
+                    filted_wait_latent_img = torch.mul(wait_latent_img, mask_var)
+                    filted_restore_img = torch.mul(restore_img, mask_var)
+                    self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
+                        self.lambda_wait_real_wait * l1_loss_fn(filted_restore_img, filted_batch_wait_img) + \
+                        self.lambda_identity * self.lambda_wait_real_wait * l1_loss_fn(filted_wait_latent_img, filted_batch_wait_img)   # Identity mapping loss
 
                 # 1st cycle parameter update
                 self.wait_to_real_generator_optimizer.zero_grad()
@@ -93,7 +119,8 @@ class CustomCycleGAN(GAN):
                 real_latent_img, restore_img, true_logtis, fake_logits = self.forward(batch_wait_img, batch_real_img, self.INDEX_real_to_wait)
                 self.discriminator_loss = torch.sum((true_logtis - 1) ** 2 + fake_logits ** 2) / 2.
                 self.generator_loss = torch.sum((fake_logits - 1) ** 2) / 2. + \
-                    self.lambda_real_wait_real * torch.sum(torch.abs(batch_real_img - restore_img))
+                    self.lambda_real_wait_real * l1_loss_fn(restore_img, batch_real_img) + \
+                    self.lambda_identity * self.lambda_real_wait_real * l1_loss_fn(real_latent_img, batch_real_img)
 
                 # 2nd cycle parameter update
                 self.wait_to_real_generator_optimizer.zero_grad()
@@ -117,8 +144,14 @@ class CustomCycleGAN(GAN):
                         '\t< 1st cycle >\tgen loss: ', generator_loss_1st, '\tdis loss: ', discriminator_loss_1st,
                         '\t< 2nd cycle >\tgen loss: ', generator_loss_2nd, '\tdis loss: ', discriminator_loss_2nd
                     )
-                    saveTransformResult('./output', str(i) + '_' + str(j) + '.png', batch_real_img, batch_wait_img, real_latent_img, wait_latent_img)
-                    self.save(i * loader.iter_num + j)
+                    self.wait_to_real_generator_loss_list.append(generator_loss_1st)
+                    self.real_discriminator_loss_list.append(discriminator_loss_1st)
+                    self.real_to_wait_generator_loss_list.append(generator_loss_2nd)
+                    self.wait_discriminator_loss_list.append(discriminator_loss_2nd)
+                    output_img_name = str(i) + '_' + str(j) + '.png'
+                    saveTransformResult(self.output_folder, output_img_name, batch_real_img, batch_wait_img, real_latent_img, wait_latent_img)
+                    self.save(i * loader.iter_num + j, model_folder = self.model_folder)
+                    break
 
     def load(self):
         self.real_to_wait_generator = self.loadModel(self.real_to_wait_generator, model_name = 'real_to_wait_generator')
@@ -141,3 +174,22 @@ class CustomCycleGAN(GAN):
         self.saveModel(self.real_discriminator, idx, model_name = 'real_discriminator')
         self.saveModel(self.wait_discriminator, idx, model_name = 'wait_discriminator')
         
+    def storeCSV(self, csv_name = './output.csv'):
+        loss_table = {
+            'wait_to_real_generator_loss': self.wait_to_real_generator_loss_list,
+            'real_to_wait_generator_loss': self.real_to_wait_generator_loss_list,
+            'wait_discriminator_loss_list': self.wait_discriminator_loss_list,
+            'real_discriminator_loss_list': self.real_discriminator_loss_list
+        }
+        df = pd.DataFrame.from_dict(loss_table)
+        df.to_csv(csv_name)
+
+    def plot(self, period_times = 2, title = '?', fig_name = './output.png'):
+        plt.plot(np.arange(len(self.wait_to_real_generator_loss_list)), self.wait_to_real_generator_loss_list, '-o', label='wait_to_real_generator_loss')
+        plt.plot(np.arange(len(self.real_to_wait_generator_loss_list)), self.real_to_wait_generator_loss_list, '-o', label='real_to_wait_generator_loss')
+        plt.plot(np.arange(len(self.wait_discriminator_loss_list)), self.wait_discriminator_loss_list, '-o', label='wait_discriminator_loss_list')
+        plt.plot(np.arange(len(self.real_discriminator_loss_list)), self.real_discriminator_loss_list, '-o', label='real_discriminator_loss_list')
+        plt.legend()
+        plt.title(title)
+        plt.savefig(fig_name)
+        plt.gca().clear()

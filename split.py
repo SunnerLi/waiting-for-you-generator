@@ -5,7 +5,7 @@ import os
 wait_counter = 0
 store_index = 0
 
-def saveImg(img, output_dir = './wait/', store_period = 20):
+def saveImg(img, output_dir = './wait/', store_period = 10):
     global wait_counter
     global store_index
     if not os.path.exists(output_dir):

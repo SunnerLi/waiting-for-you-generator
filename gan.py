@@ -48,3 +48,5 @@ class GAN(nn.Module):
         if os.path.exists(model_path):
             model.load_state_dict(torch.load(model_path)).cuda()
         return model
+
+    

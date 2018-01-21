@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch
 
 class GAN(nn.Module):
-    def __init__(self):
+    def __init__(self, model_folder):
         super(GAN, self).__init__()
 
         # Ensure the highest iteration of pretrained model
-        self.getPretrainedHighestIter()
+        self.getPretrainedHighestIter(model_folder)
 
     def getPretrainedHighestIter(self, model_folder = './model'):
         import glob
@@ -20,8 +20,6 @@ class GAN(nn.Module):
                 self.max_iter = postfix_iter
 
     def prepareBatchData(self, batch_real, batch_wait):
-        # batch_real = batch_real.transpose(2, 3).transpose(1, 2).float()
-        # batch_wait = batch_wait.transpose(2, 3).transpose(1, 2).float()
         batch_real = Variable(batch_real).cuda()
         batch_wait = Variable(batch_wait).cuda()
         return batch_real, batch_wait
@@ -38,15 +36,14 @@ class GAN(nn.Module):
         # Save
         model_iter = self.max_iter + iteration
         model_name = 'wait_iter_' + model_name + '_' + str(model_iter) + '.pth.tar'
-        torch.save(model.state_dict(), os.path.join(model_folder, model_name))
+        torch.save(model, os.path.join(model_folder, model_name))
 
     def loadModel(self, model, model_folder = './model', model_name = 'generator'):
         import glob
         import os
         model_name = 'wait_iter_' + model_name + '_' + str(self.max_iter) + '.pth.tar'
         model_path = os.path.join(model_folder + model_name)
+        print(model_path)
         if os.path.exists(model_path):
-            model.load_state_dict(torch.load(model_path)).cuda()
+            model = torch.load(model_path).cuda()
         return model
-
-    

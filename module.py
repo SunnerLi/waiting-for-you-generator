@@ -75,7 +75,7 @@ class Generator(nn.Module):
         deconv3_tensor = torch.cat((self.deconv3(conv4_tensor), conv3_tensor), 1)
         deconv2_tensor = torch.cat((self.deconv2(deconv3_tensor), conv2_tensor), 1)
         deconv1_tensor = torch.cat((self.deconv1(deconv2_tensor), conv1_tensor), 1)
-        recon = self.recon(deconv1_tensor)
+        recon = F.tanh(self.recon(deconv1_tensor))
         return recon
 
 class Discriminator(nn.Module):

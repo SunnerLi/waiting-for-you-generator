@@ -10,7 +10,7 @@ def saveImg(img, output_dir = './wait/', store_period = 10):
     global store_index
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    if wait_counter < store_index:
+    if wait_counter < store_period:
         wait_counter += 1
     else:
         wait_counter = 0

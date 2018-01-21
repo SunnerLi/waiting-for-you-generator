@@ -77,6 +77,11 @@ class CustomCycleGAN(GAN):
             for j, (batch_real_img, batch_wait_img) in enumerate(loader):
                 batch_real_img, batch_wait_img = self.prepareBatchData(batch_real_img, batch_wait_img)
 
+                # Three things should be revised
+                # 1. The definition of identity mapping are wrong
+                # 2. Maybe we should revise the both generator at the same time (not seperately)
+                # 3. Revise plot function, plot three latend space image
+
                 # ------------------------------------------------------------------------
                 # 1st cycle 
                 # ------------------------------------------------------------------------

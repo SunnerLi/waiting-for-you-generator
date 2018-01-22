@@ -16,6 +16,8 @@ class WaitTensorDataset(Data.Dataset):
         self.transform = transform
         self.real_img_list = glob.glob(os.path.join(self.real_img_root_dir, "*.jpg"))
         self.wait_img_list = glob.glob(os.path.join(self.wait_img_root_dir, "*.png"))
+        self.real_img_list = sorted(self.real_img_list)
+        self.wait_img_list = sorted(self.wait_img_list)
         self.fill()
 
     def fill(self):
@@ -23,6 +25,7 @@ class WaitTensorDataset(Data.Dataset):
             Over-sampling to make the data balance
         """
         if len(self.real_img_list) == len(self.wait_img_list):
+            self.img_num = len(self.real_img_list)
             return
         max_num, min_num = len(self.real_img_list), len(self.wait_img_list)
         (max_num, min_num) = (max_num, min_num) if max_num > min_num else (min_num, max_num)

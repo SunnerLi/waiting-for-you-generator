@@ -15,7 +15,7 @@ import torch
 class CustomCycleGAN(GAN):
     # Hyper-parameter
     lambda_real = 20.
-    lambda_wait = 10.
+    lambda_wait = 20.
     lambda_identity = 0.5
 
     def __init__(self, input_channel = 3, base_filter = 32, adopt_mask = False, model_folder = './model/', output_folder = './output/'):

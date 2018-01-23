@@ -1,7 +1,7 @@
-from torchvision_extend import transforms as my_transforms
 from torchvision import transforms
 import torch.utils.data as Data
 import numpy as np
+import torch
 import cv2
 
 class ImageDataset(Data.Dataset):
@@ -12,7 +12,7 @@ class ImageDataset(Data.Dataset):
             self.root = root
             self.img_list = glob.glob(
                 os.path.join(self.root, '*')
-            )
+            ) 
             self.use_cv = use_cv
             self.transform = transform
             channel_format_desc = "cv" if use_cv else "sklearn"
@@ -57,11 +57,14 @@ class Transpose(object):
     def __call__(self, sample):
         return sample.transpose(1, 2).transpose(0, 1)
 
-dataset = ImageDataset(root='train2014', transform = transforms.Compose(
-    Rescale((160, 320)),
-    # ToTensor(),
-    # Transpose()
-))
-loader = Data.DataLoader(dataset, batch_size=32)
-for batch_img in loader:
-    print(np.shape(batch_img))
+if __name__ == '__main__':
+    dataset = ImageDataset(root='train2014', transform = transforms.Compose([
+        Rescale((160, 320)),
+        ToTensor(),
+        Transpose()
+    ]))
+    loader = Data.DataLoader(dataset, batch_size=32)
+    loader = iter(loader)
+    for i in range(10):
+        batch_img = loader.next()
+        print(np.shape(batch_img))

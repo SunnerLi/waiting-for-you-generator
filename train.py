@@ -24,17 +24,17 @@ if __name__ == '__main__':
     loader = mData.WaitDataLoader(dataset = dataset, batch_size=16, shuffle=True, num_workers = 2)
 
     # Train (Usual cycleGAN)
+    """
     model = CustomCycleGAN(adopt_mask = False, model_folder = './cycleGAN_model/', output_folder = './cycleGAN_output/')
     model.cuda()
     model.train(loader, verbose_period=VERBOSE_PEROID, epoch=1)
     model.storeCSV(csv_name = './cycleGAN_output.csv')
     model.plot(period_times = VERBOSE_PEROID, title = 'CycleGAN', fig_name = './cycleGAN_output.png')
+    """
 
     # Train (Mask cycleGAN)
-    """
     model = CustomCycleGAN(adopt_mask = True, model_folder = './mask_cycleGAN_model/', output_folder = './mask_cycleGAN_output/')
     model.cuda()
     model.train(loader, verbose_period=VERBOSE_PEROID, epoch=3)
     model.storeCSV(csv_name = './mask_cycleGAN_output.csv')
     model.plot(period_times = VERBOSE_PEROID, title = 'Mask-CycleGAN', fig_name = './mask_cycleGAN_output.png')    
-    """

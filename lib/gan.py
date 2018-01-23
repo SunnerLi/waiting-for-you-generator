@@ -43,7 +43,6 @@ class GAN(nn.Module):
         import os
         model_name = 'wait_iter_' + model_name + '_' + str(self.max_iter) + '.pth.tar'
         model_path = os.path.join(model_folder + model_name)
-        print(model_path)
         if os.path.exists(model_path):
             model = torch.load(model_path).cuda()
         return model

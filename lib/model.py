@@ -14,8 +14,8 @@ import torch
 
 class CustomCycleGAN(GAN):
     # Hyper-parameter
-    lambda_real = 20.
-    lambda_wait = 20.
+    lambda_real = 10.
+    lambda_wait = 10.
     lambda_identity = 0.5
 
     def __init__(self, input_channel = 3, base_filter = 32, adopt_mask = False, model_folder = './model/', output_folder = './output/'):
@@ -92,6 +92,7 @@ class CustomCycleGAN(GAN):
                 adpot_prob = random.random()
                 if self.adopt_mask == True and adpot_prob > 0.5:    # mask  cycleGAN
                     mask_var = getMaskVariable(batch_wait_img, use_cuda = True)
+                    mask_var = torch.ones_like(mask_var) - mask_var
                     filted_batch_wait_img = torch.mul(batch_wait_img, mask_var)
                     filted_recon_wait = torch.mul(recon_wait, mask_var)
                     filted_ident_wait = torch.mul(ident_wait, mask_var)

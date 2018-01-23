@@ -1,32 +1,45 @@
 import torchvision.transforms.functional as F
+import numpy as np
 import torch
-import cv2
 
 BCHW2BHWC = 0
 BHWC2BCHW = 1
 
 class Rescale(object):
-    def __init__(self, output_size):
+    def __init__(self, output_size, use_cv = True):
         assert isinstance(output_size, (int, tuple))
         self.output_size = output_size
+        self.use_cv = use_cv
 
         # -------------------------------------------------------
         # Reverse the order 
         # cv2       order: [width, height]
         # pytorch   order: [hdight, width]
         # -------------------------------------------------------
-        if len(self.output_size) == 2:
-            self.output_size = tuple(reversed(list(self.output_size)))
+        if self.use_cv:
+            if len(self.output_size) == 2:
+                self.output_size = tuple(reversed(list(self.output_size)))
         print("[ Transform ] - Applied << %15s >>, you should notice the rank format is 'BHWC'" % self.__class__.__name__)
 
     def __call__(self, sample):
-        return cv2.resize(sample, self.output_size)
+        if self.use_cv:
+            import cv2
+            return cv2.resize(sample, self.output_size)
+        else:
+            from skimage import transform
+            sample = transform.resize(sample, self.output_size)
+            sample *= 255
+            return sample            
 
 class ToTensor(object):
     def __init__(self):
         print("[ Transform ] - Applied << %15s >>" % self.__class__.__name__)
 
     def __call__(self, sample):
+        # Deal with gray-scale image
+        if len(np.shape(sample)) == 2:
+            sample = sample[:, :, np.newaxis]
+            sample = np.tile(sample, 3)
         return torch.from_numpy(sample)
 
 class ToFloat(object):
@@ -94,11 +107,11 @@ class UnNormalize(object):
         """
         def _unnormalize(_tensor, _mean, _std):
             _result = []
-            for t, m, s in zip(tensor, self.mean, self.std):
+            for t, m, s in zip(_tensor, self.mean, self.std):
                 t = torch.mul(t, s)
                 t = t.add_(m)
                 _result.append(t)
-            _tensor = torch.stack(_result)
+            _tensor = torch.stack(_result, 0)
             return _tensor
 
         tensor = tensor.float() if type(tensor) == torch.ByteTensor else tensor
@@ -109,7 +122,7 @@ class UnNormalize(object):
             for t in tensor:
                 t = _unnormalize(t, self.mean, self.std)
                 result.append(t)
-            tensor = torch.cat(result, 0)
+            tensor = torch.stack(result, 0)
         return tensor
 
 def tensor2Numpy(tensor, transform = None):

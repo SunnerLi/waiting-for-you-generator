@@ -3,8 +3,8 @@ from torch.utils import data as Data
 from torch.autograd import Variable
 from torchvision import transforms
 from model import CustomCycleGAN
-import torchvision_extend.transforms as my_transforms
-import torchvision_extend.data as mData
+import torchvision_sunner.transforms as sunnertransforms
+import torchvision_sunner.data as sunnerData
 import numpy as np
 import torch
 
@@ -12,16 +12,19 @@ VERBOSE_PEROID = 20
 
 if __name__ == '__main__':
     # Generate data
-    dataset = mData.WaitTensorDataset(
-        real_img_root_dir = './train2014/', 
-        wait_img_root_dir = './wait/', 
+    dataset = sunnerData.ImageDataset(
+        root_list = ['./train2014', './wait'],
+        sample_method = sunnerData.OVER_SAMPLING,
         transform = transforms.Compose([
-                my_transforms.Rescale((160, 320)),
-                my_transforms.ToTensor(),
-                my_transforms.Normalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5])
-            ])
+            sunnertransforms.Rescale((160, 320)),
+            sunnertransforms.ToTensor(),
+
+            # BHWC -> BCHW
+            sunnertransforms.Transpose(sunnertransforms.BHWC2BCHW),
+            sunnertransforms.Normalize([127., 127., 127.], [127., 127., 127.])
+        ]) 
     )
-    loader = mData.WaitDataLoader(dataset = dataset, batch_size=16, shuffle=True, num_workers = 2)
+    loader = sunnerData.ImageLoader(dataset, batch_size=16, shuffle=True, num_workers = 2)
 
     # Train (Usual cycleGAN)
     """

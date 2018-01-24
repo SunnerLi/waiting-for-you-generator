@@ -1,3 +1,4 @@
+from torch.autograd import Variable
 import torchvision.transforms.functional as F
 import numpy as np
 import torch
@@ -126,6 +127,9 @@ class UnNormalize(object):
         return tensor
 
 def tensor2Numpy(tensor, transform = None):
+    if type(tensor) == Variable:
+        tensor = tensor.data
+    tensor = tensor.cpu()
     if transform:
         tensor = transform(tensor)
     return tensor.numpy()

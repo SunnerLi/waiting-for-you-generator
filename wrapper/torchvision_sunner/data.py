@@ -53,7 +53,6 @@ class ImageDataset(Data.Dataset):
                 for j in range(len(random_idx)):
                     self.folder_list[i].append(self.folder_list[i][random_idx[j]])
         
-        
     def __len__(self):
         return self.img_num
 

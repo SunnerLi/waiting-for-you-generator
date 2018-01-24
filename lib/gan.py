@@ -44,5 +44,5 @@ class GAN(nn.Module):
         model_name = 'wait_iter_' + model_name + '_' + str(self.max_iter) + '.pth.tar'
         model_path = os.path.join(model_folder + model_name)
         if os.path.exists(model_path):
-            model = torch.load(model_path).cuda()
+            model = torch.load(model_path, map_location=lambda storage, loc: storage).cuda()
         return model

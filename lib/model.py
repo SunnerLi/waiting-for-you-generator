@@ -5,7 +5,6 @@ from torch.autograd import Variable
 from mask import getMaskVariable
 from torch.optim import Adam
 from gan import GAN
-import torchvision_extend.transforms as my_transforms
 import torch.nn as nn
 import pandas as pd
 import numpy as np

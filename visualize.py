@@ -1,4 +1,3 @@
-import torchvision_extend.transforms as my_transforms
 import numpy as np
 import torch
 import cv2

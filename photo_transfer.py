@@ -27,7 +27,7 @@ def Unnormalize(tensor, mean, std):
         t.mul_(s).add_(m)
     return tensor
 
-def transferImage(img, output_folder = './', result_img_name = 'result.png'):
+def transferImage(img, model_path = './model/', output_folder = './', result_img_name = 'result.png'):
     # Make as variable and normalized
     img = torch.from_numpy(img).float()
     img = img.transpose(1, 2).transpose(0, 1)
@@ -38,7 +38,7 @@ def transferImage(img, output_folder = './', result_img_name = 'result.png'):
     img = Variable(torch.from_numpy(img).float()).cuda()
 
     # Transfer
-    model = CustomCycleGAN(model_folder = './cycleGAN_model/')
+    model = CustomCycleGAN(model_folder = model_path)
     model.cuda()
     model.load()
     img = model(img)
@@ -53,14 +53,16 @@ def transferImage(img, output_folder = './', result_img_name = 'result.png'):
     cv2.imwrite(os.path.join(output_folder, result_img_name), img)
 
 if __name__ == '__main__':
-    # Deal with parameter
+    # Deal with parameter 
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, default='COCO_train2014_000000000009.jpg', dest='input', help='The name of input image')
+    parser.add_argument('--model', type=str, default='./model/', dest='model', help='The path of model')
     parser.add_argument('--output', type=str, default='result.png', dest='output', help='The name of output image')
     args = parser.parse_args()
     IMAGE_NAME = args.input
+    model_path = args.model
     OUTPUT_NAME = args.output
 
     # work
     img = cv2.imread(IMAGE_NAME)
-    transferImage(img, result_img_name = OUTPUT_NAME)
+    transferImage(img, model_path = model_path, result_img_name = OUTPUT_NAME)

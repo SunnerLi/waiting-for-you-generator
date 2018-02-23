@@ -13,22 +13,22 @@ class MaskCycleGAN(CycleGAN):
     def backward_G(self):
         # Set hyper-parameters
         lambda_idt = 0.5
-        lambda_A = 5
-        lambda_B = 5
+        lambda_A = 10
+        lambda_B = 10
 
         # Get the result
         # A -> B -> A
         if lambda_idt > 0:
             idt_B = self.netG_B(self.real_A)
         fake_B = self.netG_A(self.real_A)
-        pred_fake = self.netD_A(fake_B)
+        pred_fake_A = self.netD_A(fake_B)
         rec_A = self.netG_B(fake_B)
 
         # B -> A -> B
         if lambda_idt > 0:
             idt_A = self.netG_A(self.real_B)        
         fake_A = self.netG_B(self.real_B)
-        pred_fake = self.netD_B(fake_A)
+        pred_fake_B = self.netD_B(fake_A)
         rec_B = self.netG_A(fake_A)
 
         # Store image in order to visualize
@@ -75,10 +75,10 @@ class MaskCycleGAN(CycleGAN):
             self.loss_idt_B = 0
 
         # GAN loss D_A(G_A(A))
-        loss_G_A = self.criterionGAN(pred_fake, True)
+        loss_G_A = self.criterionGAN(pred_fake_A, True)
 
         # GAN loss D_B(G_B(B))
-        loss_G_B = self.criterionGAN(pred_fake, True)
+        loss_G_B = self.criterionGAN(pred_fake_B, True)
 
         # Forward cycle loss
         loss_cycle_A = self.criterionCycle(rec_A, real_A) * lambda_A

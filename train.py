@@ -113,11 +113,15 @@ if __name__ == '__main__':
     print('training image = %d' % loader.getImageNumber())
 
     # --------------------------------------------------------------
-    # Train (Usual cycleGAN)
+    # Train 
     # --------------------------------------------------------------
-    log_name = os.path.join(save_dir, log_name)
-    csv_name = os.path.join(save_dir, csv_name)
-    """
+    origin_log_name = log_name
+    origin_csv_name = csv_name
+
+    # (Usual cycleGAN)
+    save_dir = 'cycleGAN_output'
+    log_name = os.path.join(save_dir, origin_log_name)
+    csv_name = os.path.join(save_dir, origin_csv_name)
     model = CycleGAN(save_dir, \
         isTrain = True, \
         input_channel = 3, \
@@ -126,7 +130,12 @@ if __name__ == '__main__':
         batch_size = 4, \
         use_dropout = False, \
         use_gpu = True)
-    """
+    train(model, loader, save_dir)
+
+    # (Mask-cycleGAN)
+    save_dir = 'mask-cycleGAN_output'
+    log_name = os.path.join(save_dir, origin_log_name)
+    csv_name = os.path.join(save_dir, origin_csv_name)
     model = MaskCycleGAN(save_dir, \
         isTrain = True, \
         input_channel = 3, \

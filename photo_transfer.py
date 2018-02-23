@@ -1,31 +1,17 @@
 import _init_paths
 from torch.autograd import Variable
-from model import CustomCycleGAN
+from cycle_gan import CycleGAN
+from util import saveImg
+from skimage import io
 import torchvision.transforms.functional as F
 import numpy as np
 import argparse
 import torch
-import cv2
 import os
 
 """
     This code will transfer the real-world image into waiting-for-you latend space
 """
-
-def _is_tensor_image(img):
-    return torch.is_tensor(img) and img.ndimension() == 3
-
-def Unnormalize(tensor, mean, std):
-    """Inversed-normalize a tensor image with mean and standard deviation.
-
-        This part is revised from official F.normalize implementation
-    """
-    if not _is_tensor_image(tensor):
-        raise TypeError('tensor is not a torch image.')
-    # TODO: make efficient
-    for t, m, s in zip(tensor, mean, std):
-        t.mul_(s).add_(m)
-    return tensor
 
 def transferImage(img, model_path = './model/', output_folder = './', result_img_name = 'result.png'):
     # Make as variable and normalized
@@ -35,22 +21,24 @@ def transferImage(img, model_path = './model/', output_folder = './', result_img
     std_list = [127.5, 127.5, 127.5]
     img = F.normalize(img, mean_list, std_list)
     img = img.numpy()[np.newaxis, :]
-    img = Variable(torch.from_numpy(img).float()).cuda()
+    img = torch.from_numpy(img).float()
 
     # Transfer
-    model = CustomCycleGAN(model_folder = model_path)
-    model.cuda()
-    model.load()
-    img = model(img)
+    model = CycleGAN(model_path, \
+        isTrain = False, \
+        input_channel = 3, \
+        output_channel = 3, \
+        base_filter = 32, \
+        batch_size = 4, \
+        use_dropout = False, \
+        use_gpu = True)
+    data = {'B': img}
+    model.set_input(data)
+    model.test()
+    visual = model.get_current_visuals()
 
     # Save
-    img = img.data.cpu().numpy()[0]
-    img = torch.from_numpy(img).float()
-    img = Unnormalize(img, mean_list, std_list)
-    img = img.transpose(0, 1).transpose(1, 2)
-    img = img.numpy()
-    img = (img).astype(np.uint8)
-    cv2.imwrite(os.path.join(output_folder, result_img_name), img)
+    saveImg(visual, output_folder, result_img_name)
 
 if __name__ == '__main__':
     # Deal with parameter 
@@ -64,5 +52,5 @@ if __name__ == '__main__':
     OUTPUT_NAME = args.output
 
     # work
-    img = cv2.imread(IMAGE_NAME)
+    img = io.imread(IMAGE_NAME)
     transferImage(img, model_path = model_path, result_img_name = OUTPUT_NAME)

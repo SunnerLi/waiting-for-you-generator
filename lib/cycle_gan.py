@@ -8,7 +8,7 @@ import network
 import torch
 
 class CycleGAN(BaseModel):
-    use_sigmoid = True
+    use_sigmoid = False
 
     def __init__(self, save_dir, isTrain = True, input_channel = 3, output_channel = 3, base_filter = 32, batch_size = 32, use_dropout = False, use_gpu = True):
         BaseModel.initialize(self, isTrain, save_dir, use_gpu) 
@@ -26,8 +26,9 @@ class CycleGAN(BaseModel):
         which_epoch = 'latest'
         self.load_network(self.netG_A, 'G_A', which_epoch)
         self.load_network(self.netG_B, 'G_B', which_epoch)
-        self.load_network(self.netD_A, 'D_A', which_epoch)
-        self.load_network(self.netD_B, 'D_B', which_epoch)
+        if self.isTrain:
+            self.load_network(self.netD_A, 'D_A', which_epoch)
+            self.load_network(self.netD_B, 'D_B', which_epoch)
 
         if self.isTrain:
             self.fake_A_pool = ImagePool() 
@@ -59,29 +60,52 @@ class CycleGAN(BaseModel):
         print('-----------------------------------------------')
 
     def set_input(self, _input, AtoB = 'AtoB', use_gpu = True):
-        input_A = _input['A' if AtoB else 'B']
-        input_B = _input['B' if AtoB else 'A']
-        if use_gpu:
-            input_A = input_A.cuda(async=True)
-            input_B = input_B.cuda(async=True)
-        self.input_A = input_A
-        self.input_B = input_B
-        # self.image_paths = _input['A_paths' if AtoB else 'B_paths']
+        # The input should both not be None during training
+        if self.isTrain:
+            input_A = _input['A' if AtoB else 'B']
+            input_B = _input['B' if AtoB else 'A']
+            if use_gpu:
+                input_A = input_A.cuda(async=True)
+                input_B = input_B.cuda(async=True)
+            self.input_A = input_A
+            self.input_B = input_B
+        else:
+            input_A = None
+            input_B = None
+            if AtoB == 'A':
+                if 'A' in _input.keys():
+                    input_A = _input['A']
+                if 'B' in _input.keys():
+                    input_B = _input['B']
+            else:
+                if 'B' in _input.keys():
+                    input_A = _input['B']
+                if 'A' in _input.keys():
+                    input_B = _input['A']
+            if use_gpu:
+                if input_A is not None:
+                    input_A = input_A.cuda()
+                if input_B is not None:
+                    input_B = input_B.cuda()
+            self.input_A = input_A
+            self.input_B = input_B
 
     def forward(self):
         self.real_A = Variable(self.input_A)
         self.real_B = Variable(self.input_B)
 
     def test(self):
-        real_A = Variable(self.input_A, volatile=True)
-        fake_B = self.netG_A(real_A)
-        self.rec_A = self.netG_B(fake_B).data
-        self.fake_B = fake_B.data
+        if self.input_A is not None:
+            real_A = Variable(self.input_A, volatile=True)
+            fake_B = self.netG_A(real_A)
+            self.rec_A = self.netG_B(fake_B).data
+            self.fake_B = fake_B.data
 
-        real_B = Variable(self.input_B, volatile=True)
-        fake_A = self.netG_B(real_B)
-        self.rec_B = self.netG_A(fake_A).data
-        self.fake_A = fake_A.data
+        if self.input_B is not None:
+            real_B = Variable(self.input_B, volatile=True)
+            fake_A = self.netG_B(real_B)
+            self.rec_B = self.netG_A(fake_A).data
+            self.fake_A = fake_A.data
 
     def backward_D_basic(self, netD, real, fake):
         # Real
@@ -184,12 +208,18 @@ class CycleGAN(BaseModel):
                             ('idt_A', self.loss_idt_A), ('idt_B', self.loss_idt_B)])
 
     def get_current_visuals(self):
-        real_A = tensor2im(self.input_A)
-        fake_B = tensor2im(self.fake_B)
-        rec_A  = tensor2im(self.rec_A)
-        real_B = tensor2im(self.input_B)
-        fake_A = tensor2im(self.fake_A)
-        rec_B  = tensor2im(self.rec_B)
+        if self.input_A is not None:
+            real_A = tensor2im(self.input_A)
+            fake_B = tensor2im(self.fake_B)
+            rec_A  = tensor2im(self.rec_A)
+        else:
+            real_A, fake_B, rec_A = None, None, None
+        if self.input_B is not None:
+            real_B = tensor2im(self.input_B)
+            fake_A = tensor2im(self.fake_A)
+            rec_B  = tensor2im(self.rec_B)
+        else:
+            real_B, fake_A, rec_B = None, None, None
         ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A),
                                    ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B)])
         if self.isTrain:

@@ -33,7 +33,7 @@ def print_network(net):
 
 def define_G(input_nc, output_nc, ngf, use_dropout=False, use_gpu = True):
     norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    netG = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9, use_gpu = use_gpu)
+    netG = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6, use_gpu = use_gpu)
     if use_gpu:
         netG.cuda()
     init_weights(netG)

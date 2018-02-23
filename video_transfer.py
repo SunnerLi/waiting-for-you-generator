@@ -1,8 +1,8 @@
 import _init_paths
-from photo_transfer import Unnormalize
 from torch.autograd import Variable
 from torchvision import transforms
-from model import CustomCycleGAN
+from cycle_gan import CycleGAN
+from skimage import io
 import torchvision_sunner.transforms as sunnertransforms
 import torchvision_sunner.data as sunnerData
 import torchvision.transforms.functional as F
@@ -10,7 +10,6 @@ import numpy as np
 import subprocess
 import argparse
 import torch
-import cv2
 import os
 
 """
@@ -24,8 +23,10 @@ counter = 0
 def transferImage(model, img, output_folder = './', result_img_name = 'result.png'):
     global counter
 
-    img = Variable(img).cuda() 
-    result_tensor = model(img)
+    data = {'B': img}
+    model.set_input(data)
+    model.test()
+    result_tensor = model.fake_B
     result_tensor = sunnertransforms.tensor2Numpy(result_tensor, transform = transforms.Compose([
         sunnertransforms.UnNormalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5]),
         sunnertransforms.Transpose(sunnertransforms.BCHW2BHWC),
@@ -34,7 +35,7 @@ def transferImage(model, img, output_folder = './', result_img_name = 'result.pn
     # Save
     for img in result_tensor:
         img = (img).astype(np.uint8)
-        cv2.imwrite(os.path.join(output_folder, 'frame_%d.png' % counter), img)
+        io.imsave(os.path.join(output_folder, 'frame_%d.png' % counter), img)
         counter += 1
 
 if __name__ == '__main__':
@@ -78,8 +79,9 @@ if __name__ == '__main__':
     subprocess.call(["cp", os.path.join(VIDEO_INPUT_FOLDER, new_name), os.path.join(VIDEO_OUTPUT_FOLDER, new_name[:-4] + '.png')])
     dataset = sunnerData.ImageDataset(
         root_list = [VIDEO_INPUT_FOLDER], 
+        use_cv = False,
         transform = transforms.Compose([
-            sunnertransforms.Rescale((160, 320)),
+            sunnertransforms.Rescale((160, 320), use_cv = False),
             sunnertransforms.ToTensor(),
             sunnertransforms.ToFloat(),
             sunnertransforms.Transpose(sunnertransforms.BHWC2BCHW),
@@ -87,12 +89,17 @@ if __name__ == '__main__':
         ])
     )
     loader = sunnerData.ImageLoader(dataset, batch_size=32, shuffle=False, num_workers = 2)
-
-    model = CustomCycleGAN(model_folder = model_path)
-    model.cuda()
-    model.load()
+    model = CycleGAN(model_path, \
+        isTrain = False, \
+        input_channel = 3, \
+        output_channel = 3, \
+        base_filter = 32, \
+        batch_size = 4, \
+        use_dropout = False, \
+        use_gpu = True)
     for i, batch_img in enumerate(loader):
         batch_img = torch.cat(batch_img, 0)
+        print(batch_img.size())
         print('Process progress - %.2f' % (i/loader.iter_num * 100))
         transferImage(model, batch_img, output_folder = VIDEO_OUTPUT_FOLDER, \
             result_img_name = os.path.join(VIDEO_OUTPUT_FOLDER, 'frame_%d.png' % i))

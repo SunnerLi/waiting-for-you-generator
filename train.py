@@ -1,4 +1,5 @@
 import _init_paths
+from mask_cycle_gan import MaskCycleGAN
 from torchvision import transforms
 from cycle_gan import CycleGAN
 from util import saveImg
@@ -116,11 +117,21 @@ if __name__ == '__main__':
     # --------------------------------------------------------------
     log_name = os.path.join(save_dir, log_name)
     csv_name = os.path.join(save_dir, csv_name)
+    """
     model = CycleGAN(save_dir, \
         isTrain = True, \
         input_channel = 3, \
         output_channel = 3, \
-        base_filter = 16, \
+        base_filter = 32, \
+        batch_size = 4, \
+        use_dropout = False, \
+        use_gpu = True)
+    """
+    model = MaskCycleGAN(save_dir, \
+        isTrain = True, \
+        input_channel = 3, \
+        output_channel = 3, \
+        base_filter = 32, \
         batch_size = 4, \
         use_dropout = False, \
         use_gpu = True)

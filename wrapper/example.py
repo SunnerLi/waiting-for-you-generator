@@ -8,7 +8,7 @@ import cv2
 if __name__ == '__main__':
     # Define dataset & loader
     dataset = sunnerData.ImageDataset(
-        root_list = ['./train2014', 'wait'],
+        root_list = ['./waiting_for_you_dataset/real_world', './waiting_for_you_dataset/wait'],
         transform = transforms.Compose([
             sunnertransforms.Rescale((160, 320)),
             sunnertransforms.ToTensor(),
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         ]))
         batch_img2 = sunnertransforms.tensor2Numpy(batch_img2, transform = transforms.Compose([
             sunnertransforms.UnNormalize([127., 127., 127.], [127., 127., 127.]),
-            sunnertransforms.Transpose(sunnertransforms.BCHW2BHWC),
+            sunnertransforms.Transpose(sunnertransforms.BCHW2BHWC), 
         ]))
         
         # Show

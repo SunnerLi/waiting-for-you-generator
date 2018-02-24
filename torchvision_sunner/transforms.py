@@ -73,10 +73,21 @@ class Normalize(object):
     """
         Normalize toward two tensor
     """
-    def __init__(self, mean, std):
+    def __init__(self, mean = None, std = None):
+        """
+            Normalize the tensor with given mean and standard deviation
+            * Notice: If you didn't give mean and std, the result will locate in [-1, 1]
+            Args:
+                mean    - The mean of the result tensor
+                std     - The standard deviation
+        """
         self.mean = mean
         self.std = std
+        if (mean is None and std is not None) or (mean is not None and std is None):
+            raise Exception('You should assign mean and std at the same time! (Or not assign at the same time)')
         print("[ Transform ] - Applied << %15s >>, you should notice the rank format should be 'BCHW'" % self.__class__.__name__)
+        if mean is None and std is None:
+            print("[ Transform ] - You should notice that the result will locate in [-1, 1]")
 
     def __call__(self, sample):
         """
@@ -86,18 +97,46 @@ class Normalize(object):
             Tensor: Normalized Tensor image.
         """
         sample = sample.float() if type(sample) == torch.ByteTensor else sample
-        if len(sample.size()) == 3:
-            sample = F.normalize(sample, self.mean, self.std)
+        if self.mean is not None and self.std is not None:
+            if len(sample.size()) == 3:
+                sample = F.normalize(sample, self.mean, self.std)
+            else:
+                for t in sample:
+                    t = F.normalize(t, self.mean, self.std)
         else:
-            for t in sample:
-                t = F.normalize(t, self.mean, self.std)
+            if len(sample.size()) == 3:
+                sample = self.normalize_none(sample)
+            else:
+                for t in sample:
+                    t = self.normalize_none(t)
         return sample
 
+    def normalize_none(self, t):
+        t = torch.div(t, 255)
+        t = t.mul_(2)
+        t = t.add_(-1)
+        return t
+
 class UnNormalize(object):
-    def __init__(self, mean, std):
+    has_show_warn = False
+
+    def __init__(self, mean = None, std = None):
+        """
+            Unnormalize the tensor with given mean and standard deviation
+            * Notice: If you didn't give mean and std, the function will assume that the original distribution locates in [-1, 1]
+            Args:
+                mean    - The mean of the result tensor
+                std     - The standard deviation
+        """
         self.mean = mean
         self.std = std
-        print("[ Transform ] - Applied << %15s >>, you should notice the rank format should be 'BCHW'" % self.__class__.__name__)
+        if (mean is None and std is not None) or (mean is not None and std is None):
+            raise Exception('You should assign mean and std at the same time! (Or not assign at the same time)')
+        if self.has_show_warn == False:
+            print("[ Transform ] - Applied << %15s >>, you should notice the rank format should be 'BCHW'" % self.__class__.__name__)
+            if mean is None and std is None:
+                print("[ Transform ] - You should notice that the range of original distribution will be assumeed in [-1, 1]")
+            self.has_show_warn = True
 
     def __call__(self, tensor):
         """
@@ -116,15 +155,34 @@ class UnNormalize(object):
             return _tensor
 
         tensor = tensor.float() if type(tensor) == torch.ByteTensor else tensor
-        if len(tensor.size()) == 3:
-            tensor = _unnormalize(tensor, self.mean, self.std)
+        if self.mean is not None and self.std is not None:
+            if len(tensor.size()) == 3:
+                tensor = _unnormalize(tensor, self.mean, self.std)
+            else:
+                result = []
+                for t in tensor:
+                    t = _unnormalize(t, self.mean, self.std)
+                    result.append(t)
+                tensor = torch.stack(result, 0)
         else:
-            result = []
-            for t in tensor:
-                t = _unnormalize(t, self.mean, self.std)
-                result.append(t)
-            tensor = torch.stack(result, 0)
+            if len(tensor.size()) == 3:
+                tensor = self.unnormalize_none(tensor)
+            else:
+                result = []
+                for t in tensor:
+                    t = self.unnormalize_none(t)
+                    result.append(t)
+                tensor = torch.stack(result, 0)
         return tensor
+
+    def unnormalize_none(self, tensor):
+        _result = []
+        for t in tensor:
+            t = t.add_(1)
+            t = torch.div(t, 2)
+            t = t.mul_(255)
+            _result.append(t)
+        return torch.stack(_result, 0)
 
 def tensor2Numpy(tensor, transform = None):
     if type(tensor) == Variable:

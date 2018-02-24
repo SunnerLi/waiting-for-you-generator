@@ -17,6 +17,11 @@ Install
 2. put it in your current folder
 3. import library and done!
 
+Dataset
+---
+The examples will use waiting-for-you dataset as example. You can find the dataset [here](https://www.dropbox.com/s/cbuwbrehgglebhp/waiting_for_you_dataset.zip?dl=0). Download and extract it before you run the example. You can use your own data too! Just give the path of the folder, the module will load the image automatically!         
+
+
 Usage
 ---
 Import library first
@@ -29,19 +34,19 @@ Form dataset:
 ```python
 # Load single image folder
 dataset = sunnerData.ImageDataset(
-    root_list = ['./train2014', 'wait'],
+    root_list = ['./waiting_for_you_dataset/real_world'],
 )
 
 # Load multiple image folder
 dataset = sunnerData.ImageDataset(
-    root_list = ['./train2014'],
+    root_list = ['./waiting_for_you_dataset/real_world', './waiting_for_you_dataset/wait'],
 )
 ```
 
 Extra transpose method
 ```python
 dataset = sunnerData.ImageDataset(
-    root_list = ['./train2014', 'wait'],
+    root_list = ['./waiting_for_you_dataset/real_world', './waiting_for_you_dataset/wait'],
     transform = transforms.Compose([
         sunnertransforms.Rescale((160, 320)),
         sunnertransforms.ToTensor(),
@@ -53,6 +58,15 @@ dataset = sunnerData.ImageDataset(
 )
 ```
 
+The Z normalization is also supported in default! Just don't give any parameter.
+```python
+# Assume the range of original distribution is [0, 255]
+sunnertransforms.Normalize(     # The range will squeeze in [-1.007, 1.007]
+          [127., 127., 127.], [127., 127., 127.]
+)   
+sunnertransforms.Normalize()    # The range will squeeze in [-1, 1]
+```
+
 The wrapper of usual `Dataloader`, but it can know the whole number of batch!
 ```python
 loader = sunnerData.ImageLoader(dataset, batch_size=32, shuffle=False, num_workers = 2)
@@ -62,22 +76,21 @@ Transfer the tensor into numpy, and it's similar to the usage of `ImageDataset`!
 ```python
 batch_img = sunnertransforms.tensor2Numpy(batch_img, transform = transforms.Compose([
     sunnertransforms.UnNormalize([127., 127., 127.], [127., 127., 127.]),
+    sunnertransforms.UnNormalize(),     # usual unnormalization
     sunnertransforms.Transpose(sunnertransforms.BCHW2BHWC),
 ]))
 ```
-
-
-
+You can check example3 to see the detail usage of normalization without parameters.    
 
 Notice
 ---
 * This package provides two backend image processing library working: opencv and skimage. Since the opencv can show the continuous image easily, the default library we use is opencv. On the contrary, the installation of opencv is tedious. You can choose skimage to become the backend library while it can be easily installed. 
 ```python
 dataset = sunData.ImageDataset(
-    root_list = ['./train2014'],
-    use_cv = False,
+    root_list = ['./waiting_for_you_dataset/real_world'],
+    use_cv = False,                                          # Revised here
     transform = transforms.Compose([
-        suntransforms.Rescale((160, 320), use_cv = False),
+        suntransforms.Rescale((160, 320), use_cv = False),   # Revised here too
         suntransforms.ToTensor(),
     ]) 
 )

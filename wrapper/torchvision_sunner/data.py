@@ -84,3 +84,6 @@ class ImageLoader(Data.DataLoader):
     def getIterNumber(self):       
         return round(self.dataset.img_num / self.batch_size)
         # return round(len(self.dataset.data_tensor) / self.batch_size)
+
+    def getImageNumber(self):
+        return self.dataset.img_num

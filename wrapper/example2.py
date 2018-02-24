@@ -8,7 +8,7 @@ import cv2
 if __name__ == '__main__':
     # Define dataset & loader
     dataset = sunData.ImageDataset(
-        root_list = ['./train2014', 'wait'],
+        root_list = ['./waiting_for_you_dataset/real_world', './waiting_for_you_dataset/wait'],
         use_cv = False,
         sample_method = sunData.OVER_SAMPLING,
         transform = transforms.Compose([
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         # Result size: [batch_size, image_height, image_width, image_channel]
         batch_img1 = suntransforms.tensor2Numpy(batch_img1, transform = transforms.Compose([
             suntransforms.UnNormalize([127., 127., 127.], [127., 127., 127.]),
-            suntransforms.Transpose(suntransforms.BCHW2BHWC),
+            suntransforms.Transpose(suntransforms.BCHW2BHWC), 
         ]))
         batch_img2 = suntransforms.tensor2Numpy(batch_img2, transform = transforms.Compose([
             suntransforms.UnNormalize([127., 127., 127.], [127., 127., 127.]),

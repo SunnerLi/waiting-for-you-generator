@@ -96,7 +96,7 @@ def train(model, loader, output_folder):
 if __name__ == '__main__':
     # Generate data
     dataset = sunnerData.ImageDataset(
-        root_list = ['./train2014', './wait'],
+        root_list = ['./waiting_for_you_dataset/real_world', './waiting_for_you_dataset/wait'],
         sample_method = sunnerData.OVER_SAMPLING,
         use_cv = False,
         transform = transforms.Compose([
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
             # BHWC -> BCHW
             sunnertransforms.Transpose(sunnertransforms.BHWC2BCHW),
-            sunnertransforms.Normalize([127., 127., 127.], [127., 127., 127.])
+            sunnertransforms.Normalize()
         ]) 
     )
     loader = sunnerData.ImageLoader(dataset, batch_size=4, shuffle=True, num_workers = 2)

@@ -1,5 +1,5 @@
-VERBOSE_PEROID = 200
-iteration = 20000
+VERBOSE_PEROID = 10
+iteration = 1000
 batch_size = 4
 log_name = 'log.txt'
 csv_name = 'loss_latest.csv'

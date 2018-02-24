@@ -8,7 +8,7 @@ import network
 import torch
 
 class CycleGAN(BaseModel):
-    use_sigmoid = False
+    use_sigmoid = True
 
     def __init__(self, save_dir, isTrain = True, input_channel = 3, output_channel = 3, base_filter = 32, batch_size = 32, use_dropout = False, use_gpu = True):
         BaseModel.initialize(self, isTrain, save_dir, use_gpu) 

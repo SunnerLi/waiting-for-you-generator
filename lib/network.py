@@ -32,7 +32,7 @@ def print_network(net):
     print('Total number of parameters: %d' % num_params)
 
 def define_G(input_nc, output_nc, ngf, use_dropout=False, use_gpu = True):
-    norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+    norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
     netG = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6, use_gpu = use_gpu)
     if use_gpu:
         netG.cuda()
@@ -40,7 +40,7 @@ def define_G(input_nc, output_nc, ngf, use_dropout=False, use_gpu = True):
     return netG
 
 def define_D(input_nc, ndf, n_layers_D=3, use_sigmoid=False, use_gpu = True):
-    norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+    norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
     netD = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer, use_sigmoid=use_sigmoid, use_gpu = use_gpu)
     if use_gpu:
         netD.cuda()

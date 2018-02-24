@@ -17,9 +17,12 @@ def transferImage(img, model_path = './model/', output_folder = './', result_img
     # Make as variable and normalized
     img = torch.from_numpy(img).float()
     img = img.transpose(1, 2).transpose(0, 1)
-    mean_list = [127.5, 127.5, 127.5]
-    std_list = [127.5, 127.5, 127.5]
-    img = F.normalize(img, mean_list, std_list)
+
+    # Normalize
+    for t in img:
+        t = torch.div(t, 255).mul_(2).add_(-1)
+
+    # Form the input tensor
     img = img.numpy()[np.newaxis, :]
     img = torch.from_numpy(img).float()
 

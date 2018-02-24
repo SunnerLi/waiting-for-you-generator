@@ -28,7 +28,7 @@ def transferImage(model, img, output_folder = './', result_img_name = 'result.pn
     model.test()
     result_tensor = model.fake_B
     result_tensor = sunnertransforms.tensor2Numpy(result_tensor, transform = transforms.Compose([
-        sunnertransforms.UnNormalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5]),
+        sunnertransforms.UnNormalize(),
         sunnertransforms.Transpose(sunnertransforms.BCHW2BHWC),
     ]))
 
@@ -85,7 +85,7 @@ if __name__ == '__main__':
             sunnertransforms.ToTensor(),
             sunnertransforms.ToFloat(),
             sunnertransforms.Transpose(sunnertransforms.BHWC2BCHW),
-            sunnertransforms.Normalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5])
+            sunnertransforms.Normalize()
         ])
     )
     loader = sunnerData.ImageLoader(dataset, batch_size=32, shuffle=False, num_workers = 2)

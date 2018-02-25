@@ -43,21 +43,18 @@ class MaskCycleGAN(CycleGAN):
         real_A = self.real_A
         real_B = self.real_B
         if random.random() < self.adopt_mask_alpha:
-            if self.mask_position == 'A':
-                mask_var = getMaskVariable(self.real_A, use_cuda = True)
-                mask_var = torch.ones_like(mask_var) - mask_var
-                real_A = torch.mul(self.real_A, mask_var)
-                rec_A  = torch.mul(rec_A, mask_var)
-                idt_B  = torch.mul(idt_B, mask_var)
-            elif self.mask_position == 'B':
-                mask_var = getMaskVariable(self.real_B, use_cuda = True)
-                mask_var = torch.ones_like(mask_var) - mask_var
-                real_B = torch.mul(self.real_B, mask_var)
-                rec_B  = torch.mul(rec_B, mask_var)
-                idt_A  = torch.mul(idt_A, mask_var)
-            else:
-                print('Cannot understand mask position...')
-                exit()            
+            # Mask in A
+            mask_var = getMaskVariable(self.real_A, use_cuda = True)
+            mask_var = torch.ones_like(mask_var) - mask_var
+            real_A = torch.mul(self.real_A, mask_var)
+            rec_A  = torch.mul(rec_A, mask_var)
+            idt_B  = torch.mul(idt_B, mask_var)
+            # Mask in B
+            mask_var = getMaskVariable(self.real_B, use_cuda = True)
+            mask_var = torch.ones_like(mask_var) - mask_var
+            real_B = torch.mul(self.real_B, mask_var)
+            rec_B  = torch.mul(rec_B, mask_var)
+            idt_A  = torch.mul(idt_A, mask_var)          
 
         # Identity loss
         if lambda_idt > 0:

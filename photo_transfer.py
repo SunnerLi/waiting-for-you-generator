@@ -32,9 +32,10 @@ def transferImage(img, model_path = './model/', output_folder = './', result_img
         input_channel = 3, \
         output_channel = 3, \
         base_filter = 32, \
-        batch_size = 4, \
+        batch_size = 1, \
         use_dropout = False, \
         use_gpu = True)
+    img = img[:, :3, :, :]
     data = {'B': img}
     model.set_input(data)
     model.test()

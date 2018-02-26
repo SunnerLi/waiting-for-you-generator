@@ -3,61 +3,40 @@
 [![Packagist](https://img.shields.io/badge/Torchvision-0.2.0-red.svg)]()
 [![Packagist](https://img.shields.io/badge/Python-3.5.2-blue.svg)]()
 
-![](https://raw.githubusercontent.com/SunnerLi/waiting-for-you-generator/master/img/usual_cycleGAN_result/9_3500.png?token=AK99R3VAW0xMvrh7HeGB41M7zIomwRtEks5acW9dwA%3D%3D)
+![](https://github.com/SunnerLi/waiting-for-you-generator/blob/original_structure/img/usual_cycleGAN_result/result.png)
 
-Motivation
+Abstract
 ---
-In 18th January 2018, the famous singer Jay-Chou released the new song - waiting for you. In the MV of this song, the love story is described by the smooth screen. Moreover, the actual site he filming this video is National Taiwan Normal University which differ from my school.     
+This is the another version of waiting for you generator. The branch use original structure to enhance the render performance. The structure of generator is ResNet-6, and the normalization technique is instance normalization. Most of the important, this branch adopt original GAN loss as the cost function.     
 
-Contribution
+Dataset
 ---
-1. use cycleGAN and mask-cycleGAN to transfer the image and video into waiting-for-you image space
-2. provide `ImageDataset` and `ImageLoader` which is more flexible to the multiple image folder.    
-
-Abstraction
----
-For style transfer problem, there're pure-CNN based[1] method and GAN based[2] methods. However, in the video of this song, there're some text covering the screen. In this project, the mask cycle generative adversarial network (Mask-CycleGAN) structure is purposed to solve this problem which is revised from the usual CycleGAN[2]. Not only using usual CycleGAN to do the style transfer, but also adopting a mask to shield the influence of these texts. By using our model, you can create your own waiting for you video, and invest the unique touching for your own!!!      
-
-Cycle Structure
----
-![](https://raw.githubusercontent.com/SunnerLi/waiting-for-you-generator/master/img/article/cycle3.png?token=AK99R1l-LiJeIldqkd30pX0eQ_tsiW9tks5acXd8wA%3D%3D)    
-
-Environment
----
-OS: Ubuntu 16.04     
-Dataset: MSCOCO 2014 (real space) and the shot of waiting for you MV (waiting space)    
+In order to increase the shared semantic between different modality, this brance use our-collected dataset without MSCOCO dataset. There are two modalities in the dataset:    
+* Real world modality: We capture the scan from two real-cover video. Additionally, the screen with much low brightness would be ignored in this image domain. [[link1](https://www.youtube.com/watch?v=HS-giu1EvWc)][[link2](https://www.youtube.com/watch?v=5aGRw0_gSxY)]    
+* Waiting-for-you modality: We record the scan from the two MV that Jay chou released. In the second version, the screen with snow background would be ignored since it's in the real world modality. [[link1](https://www.youtube.com/watch?v=kfXdP7nZIiE)][[link2](https://www.youtube.com/watch?v=QQucPUfXUQQ)]     
 
 Usage
 ---
-You should download the dataset by yourself:
+The dataset is located in Dropbox platform (url: `https://www.dropbox.com/s/cbuwbrehgglebhp/waiting_for_you_dataset.zip?dl=0`). As the result, you should download the file before you start to train.
+
+**Another point you should notice!** The parameter of transfer is changed. You can refer the following example:
 ```
-# Prepare training data for real space
-$ wget https://images.cocodataset.org/zips/train2014.zip && unzip train2014.zip
-
-# Prepare training data for waiting space
-$ python split.py
-
 # Training
 $ python train.py
 
 # Transfer the photo
-$ python photo_transfer.py --input ./img/nctu_sport_field.png --model ./model_mask_cycleGAN/ --output ./img/result.png
+$ python photo_transfer.py --input ./img/nctu_sport_field.png --model ./mask_cycleGAN_output/ --output result.png
 
 # Transfer the video
-$ python video_transfer.py --input waiting_for_you.mp4 --model ./model_mask_cycleGAN/ --output result.mp4
+$ python video_transfer.py --input waiting_for_you.mp4 --model ./mask_cycleGAN_output/ --output result.mp4
 ```
 
-Result
+Render Result
 ---
-![](https://raw.githubusercontent.com/SunnerLi/waiting-for-you-generator/master/img/article/loss_merge.png?token=AK99RwEToXKHPcOQTPCGVTmVHP8_Bg91ks5acXBRwA%3D%3D)
-The above image shows the loss curve. As you can see, both idea can converge at the end. You can refer to the report article to get the detail of my result.    
+The top picture has shown the result of usual CycleGAN, and the following shows the render result of Mask-CycleGAN:
 
-Notice
----
-Even pytorch can accept the arbitrary size of input image, the padding of convolution is rigid. It's recommend to resize as the time of (160 * 320), or some padding issue will raise.     
+![](https://github.com/SunnerLi/waiting-for-you-generator/blob/original_structure/img/mask_cycleGAN_result/bce_result.png)
 
-Reference
----
-[1] Leon A. Gatys, Alexander S. Ecker, and Matthias Bethge, “Image Style Transfer Using Convolutional Neural Networks,” _In 2016 IEEE Conference on Computer Vision and Pattern Recognition (CVPR)_, Las Vegas, Nevada, USA, 27–30 June, 2016, pp. 2414–2423.    
+We also adopt least square loss and train again! The following image shows the result of LS loss:
 
-[2] Jun-Yan Zhu, Taesung Park, Phillip Isola, and Alexei A. Efros, “Unpaired Image-to-Image Translation using CycleConsistent Adversarial Networks,” _In International Conference on Computer Vision (ICCV)_, Venice, Italy, 22- 29, October, 2017, pp. 2223–2232.
+![](https://github.com/SunnerLi/waiting-for-you-generator/blob/original_structure/img/mask_cycleGAN_result/ls_.png)

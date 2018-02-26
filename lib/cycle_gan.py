@@ -72,7 +72,7 @@ class CycleGAN(BaseModel):
         else:
             input_A = None
             input_B = None
-            if AtoB == 'A':
+            if AtoB == 'AtoB':
                 if 'A' in _input.keys():
                     input_A = _input['A']
                 if 'B' in _input.keys():

@@ -113,8 +113,8 @@ class Normalize(object):
 
     def normalize_none(self, t):
         t = torch.div(t, 255)
-        t = t.mul_(2)
-        t = t.add_(-1)
+        t = torch.mul(t, 2)
+        t = torch.add(t, -1)
         return t
 
 class UnNormalize(object):
@@ -178,7 +178,7 @@ class UnNormalize(object):
     def unnormalize_none(self, tensor):
         _result = []
         for t in tensor:
-            t = t.add_(1)
+            t = torch.add(t, 1)
             t = torch.div(t, 2)
             t = t.mul_(255)
             _result.append(t)

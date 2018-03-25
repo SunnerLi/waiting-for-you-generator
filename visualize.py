@@ -1,3 +1,4 @@
+import torchvision_sunner.transforms as sunnertransforms
 import numpy as np
 import torch
 import cv2
@@ -14,7 +15,7 @@ def saveTransformResult(output_dir, img_name,
         Visualize for 4 image
     """
     # Reverse normalization
-    unNorm = my_transforms.UnNormalize([127.5, 127.5, 127.5], [127.5, 127.5, 127.5])
+    unNorm = sunnertransforms.UnNormalize()
     wait_img_var, real_img_var = unNorm(wait_img_var), unNorm(real_img_var)
     fake_real_var, fake_wait_var = unNorm(fake_real_var), unNorm(fake_wait_var)
     recon_wait_var, recon_real_var = unNorm(recon_wait_var), unNorm(recon_real_var)
